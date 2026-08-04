@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================
+   Global Reset
+========================= */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    font-family: Inter, Arial, sans-serif;
+    @apply bg-gray-100 text-gray-900 transition-colors duration-300;
+    overflow-x:hidden;
+}
+
+.dark body{
+    @apply bg-slate-900 text-white;
+}
+
+/* =========================
+   Custom Scrollbar
+========================= */
+
+::-webkit-scrollbar{
+    width:8px;
+}
+
+::-webkit-scrollbar-track{
+    background:#e5e7eb;
+}
+
+::-webkit-scrollbar-thumb{
+    background:#2563eb;
+    border-radius:20px;
+}
+
+::-webkit-scrollbar-thumb:hover{
+    background:#1d4ed8;
+}
+
+/* =========================
+   Marquee Animation
+========================= */
+
+@keyframes marquee{
+
+    0%{
+        transform:translateX(100%);
+    }
+
+    100%{
+        transform:translateX(-100%);
+    }
+
+}
+
+.animate-marquee{
+
+    display:inline-flex;
+    min-width:max-content;
+    animation:marquee 22s linear infinite;
+
+}
+
+/* =========================
+   Floating Animation
+========================= */
+
+@keyframes floating{
+
+    0%{
+        transform:translateY(0px);
+    }
+
+    50%{
+        transform:translateY(-8px);
+    }
+
+    100%{
+        transform:translateY(0px);
+    }
+
+}
+
+.animate-floating{
+
+    animation:floating 3s ease-in-out infinite;
+
+}
+
+/* =========================
+   Fade In
+========================= */
+
+@keyframes fadeIn{
+
+    from{
+
+        opacity:0;
+        transform:translateY(15px);
+
+    }
+
+    to{
+
+        opacity:1;
+        transform:translateY(0);
+
+    }
+
+}
+
+.animate-fade{
+
+    animation:fadeIn .6s ease-in-out;
+
+}
+
+/* =========================
+   Card Hover Effect
+========================= */
+
+.hover-card{
+
+    transition:all .3s ease;
+
+}
+
+.hover-card:hover{
+
+    transform:translateY(-6px);
+    box-shadow:0 15px 35px rgba(37,99,235,.25);
+
+}
