@@ -16,6 +16,8 @@ const {
     buyCable
 } = require("../controllers/cableController");
 
+const requireTransactionPin = require("../middleware/requireTransactionPin");
+
 router.get(
     "/providers",
     auth,
@@ -40,6 +42,7 @@ router.post(
     getSettings,
     checkMaintenance,
     checkService("cable"),
+    requireTransactionPin,
     buyCable
 );
 

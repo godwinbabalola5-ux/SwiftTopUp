@@ -9,9 +9,17 @@ const verifyAdmin = require("../middleware/adminMiddleware");
 const {
 
     getSettings,
+    getPublicSettings,
     updateSettings
 
 } = require("../controllers/settingsController");
+
+// Public — no auth. Only exposes company name + support contact info,
+// nothing sensitive (see getPublicSettings in the controller).
+router.get(
+    "/public",
+    getPublicSettings
+);
 
 router.get(
 

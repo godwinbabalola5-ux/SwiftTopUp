@@ -15,6 +15,8 @@ const {
     buyElectricity
 } = require("../controllers/electricityController");
 
+const requireTransactionPin = require("../middleware/requireTransactionPin");
+
 router.get(
     "/providers",
     auth,
@@ -30,6 +32,7 @@ router.post(
     getSettings,
     checkMaintenance,
     checkService("electricity"),
+    requireTransactionPin,
     buyElectricity
 );
 

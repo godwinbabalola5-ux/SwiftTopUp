@@ -15,6 +15,8 @@ const {
     buyData
 } = require("../controllers/dataController");
 
+const requireTransactionPin = require("../middleware/requireTransactionPin");
+
 router.get(
     "/plans/:network",
     auth,
@@ -30,6 +32,7 @@ router.post(
     getSettings,
     checkMaintenance,
     checkService("data"),
+    requireTransactionPin,
     buyData
 );
 

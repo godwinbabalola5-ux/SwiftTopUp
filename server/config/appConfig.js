@@ -1,3 +1,3 @@
 module.exports = {
-    DEVELOPMENT_MODE: true
+    DEVELOPMENT_MODE: false
 };

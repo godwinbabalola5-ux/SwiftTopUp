@@ -2,6 +2,7 @@ const db = require("../config/db");
 const createNotification = require("../utils/createNotification");
 const { rewardCashback } = require("./cashbackController");
 const paymentEngine = require("../services/paymentEngine");
+const { deductWalletAtomic, creditWalletAtomic } = require("../services/walletService");
 
 
 // ==========================================
@@ -81,6 +82,13 @@ const getDiscos = async (req, res) => {
 
 const buyElectricity = async (req, res) => {
 
+    // Tracks whether we've already taken money out of the wallet in this
+    // request, so the catch-all error handler at the bottom knows whether
+    // a refund is needed.
+    let deducted = false;
+    let deductedUserId = null;
+    let deductedAmount = 0;
+
     try {
 
         const userId = req.user.id;
@@ -158,19 +166,22 @@ const buyElectricity = async (req, res) => {
 
 
         // ==========================================
-        // CHECK WALLET
+        // ATOMIC WALLET DEDUCTION
         // ==========================================
+        // Deduct BEFORE calling the provider, atomically (checks balance
+        // and deducts in one SQL statement) so two near-simultaneous
+        // requests can't both pass a balance check and both deduct.
 
-        if (Number(user.wallet) < Number(amount)) {
-
+        try {
+            await deductWalletAtomic(userId, Number(amount));
+            deducted = true;
+            deductedUserId = userId;
+            deductedAmount = Number(amount);
+        } catch (err) {
             return res.status(400).json({
-
                 success: false,
-
-                message: "Insufficient wallet balance."
-
+                message: err.message // "Insufficient wallet balance."
             });
-
         }
 
 
@@ -216,6 +227,10 @@ const buyElectricity = async (req, res) => {
 
         if (!response || response.data?.code !== "000") {
 
+            // Provider failed — refund what we deducted.
+            await creditWalletAtomic(userId, Number(amount));
+            deducted = false;
+
             return res.status(400).json({
 
                 success: false,
@@ -227,22 +242,6 @@ const buyElectricity = async (req, res) => {
             });
 
         }
-
-
-        // ==========================================
-        // DEDUCT WALLET
-        // ==========================================
-
-        await db.query(
-
-            "UPDATE users SET wallet = wallet - ? WHERE id=?",
-
-            [
-                Number(amount),
-                userId
-            ]
-
-        );
 
 
         // ==========================================
@@ -289,6 +288,20 @@ const buyElectricity = async (req, res) => {
 
         const transactionId =
             transactionResult.insertId;
+
+        // NOTE: unlike airtime/data, there's currently no markup/profit
+        // calculated for electricity purchases (amount is passed straight
+        // through to the provider), so there's nothing to record in
+        // business_wallet yet. The old code here referenced an undefined
+        // `profit` variable, which threw a ReferenceError on every
+        // successful electricity payment — right after the money had
+        // already been taken and the transaction saved as "success" —
+        // and that error was swallowed by the catch block below,
+        // returning a false "payment failed" to the customer even though
+        // it had gone through. If you want a markup on electricity,
+        // add the same provider-cost/customer-amount/markup calculation
+        // that dataController.js uses, then insert into business_revenue
+        // and update business_wallet like that file does.
 
 
         // ==========================================
@@ -380,6 +393,16 @@ const buyElectricity = async (req, res) => {
             "======================================="
         );
 
+        // Something failed after we'd already deducted the money —
+        // refund so the customer isn't charged for a purchase that
+        // didn't go through.
+        if (deducted) {
+            try {
+                await creditWalletAtomic(deductedUserId, deductedAmount);
+            } catch (refundError) {
+                console.log("REFUND FAILED — needs manual review:", refundError);
+            }
+        }
 
         return res.status(500).json({
 

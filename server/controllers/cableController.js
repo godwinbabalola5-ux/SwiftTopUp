@@ -2,6 +2,7 @@ const db = require("../config/db");
 const createNotification = require("../utils/createNotification");
 const { rewardCashback } = require("./cashbackController");
 const paymentEngine = require("../services/paymentEngine");
+const { deductWalletAtomic, creditWalletAtomic } = require("../services/walletService");
 
 
 // ==========================================
@@ -76,8 +77,12 @@ const getPlans = async (req, res) => {
 
             success: true,
 
+            // Same VTpass inconsistency as data plans — check both
+            // spellings so we don't break on either response shape.
             plans:
-                response.data?.content?.variations || []
+                response.data?.content?.variations ||
+                response.data?.content?.varations ||
+                []
 
         });
 
@@ -113,6 +118,12 @@ const getPlans = async (req, res) => {
 // ==========================================
 
 const buyCable = async (req, res) => {
+
+    // Tracks whether we've already taken money out of the wallet in this
+    // request, so any failure branch below knows whether a refund is needed.
+    let deducted = false;
+    let deductedUserId = null;
+    let deductedAmount = 0;
 
     try {
 
@@ -193,20 +204,22 @@ const buyCable = async (req, res) => {
 
 
         // ==========================================
-        // CHECK WALLET
+        // ATOMIC WALLET DEDUCTION
         // ==========================================
+        // Deduct BEFORE calling the provider, atomically, so two
+        // near-simultaneous requests can't both pass a balance check
+        // and both deduct.
 
-        if (Number(user.wallet) < Number(amount)) {
-
+        try {
+            await deductWalletAtomic(userId, Number(amount));
+            deducted = true;
+            deductedUserId = userId;
+            deductedAmount = Number(amount);
+        } catch (err) {
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "Insufficient wallet balance."
-
+                message: err.message // "Insufficient wallet balance."
             });
-
         }
 
 
@@ -253,6 +266,10 @@ const buyCable = async (req, res) => {
             response.data?.code !== "000"
         ) {
 
+            // Provider failed — refund what we deducted.
+            await creditWalletAtomic(userId, Number(amount));
+            deducted = false;
+
             return res.status(400).json({
 
                 success: false,
@@ -283,6 +300,11 @@ const buyCable = async (req, res) => {
             transactionStatus !== "delivered"
         ) {
 
+            // Provider took the money but didn't actually deliver the
+            // subscription — refund the customer.
+            await creditWalletAtomic(userId, Number(amount));
+            deducted = false;
+
             return res.status(400).json({
 
                 success: false,
@@ -295,22 +317,6 @@ const buyCable = async (req, res) => {
             });
 
         }
-
-
-        // ==========================================
-        // DEDUCT WALLET
-        // ==========================================
-
-        await db.query(
-
-            "UPDATE users SET wallet = wallet - ? WHERE id=?",
-
-            [
-                Number(amount),
-                userId
-            ]
-
-        );
 
 
         // ==========================================
@@ -358,6 +364,17 @@ const buyCable = async (req, res) => {
 
         const transactionId =
             transactionResult.insertId;
+
+        // NOTE: same as electricityController.js — no markup/profit is
+        // currently calculated for cable purchases, so there's nothing
+        // to record in business_wallet yet. The old code here referenced
+        // an undefined `profit` variable, which threw a ReferenceError
+        // right after every successful payment (money already taken,
+        // transaction already saved), got swallowed by the catch block
+        // below, and returned a false "subscription failed" to the
+        // customer even though it succeeded. If you want a cable markup,
+        // mirror the provider-cost/customer-amount/markup pattern in
+        // dataController.js.
 
 
         // ==========================================
@@ -450,6 +467,16 @@ const buyCable = async (req, res) => {
             "================================="
         );
 
+        // Something failed after we'd already deducted the money —
+        // refund so the customer isn't charged for a subscription that
+        // didn't go through.
+        if (deducted) {
+            try {
+                await creditWalletAtomic(deductedUserId, deductedAmount);
+            } catch (refundError) {
+                console.log("REFUND FAILED — needs manual review:", refundError);
+            }
+        }
 
         return res.status(500).json({
 

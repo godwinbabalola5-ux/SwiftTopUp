@@ -14,12 +14,15 @@ const {
     buyAirtime
 } = require("../controllers/airtimeController");
 
+const requireTransactionPin = require("../middleware/requireTransactionPin");
+
 router.post(
     "/buy",
     auth,
     getSettings,
     checkMaintenance,
     checkService("airtime"),
+    requireTransactionPin,
     buyAirtime
 );
 

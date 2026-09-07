@@ -5,6 +5,12 @@ const pool = mysql.createPool({
 
     host: process.env.DB_HOST,
 
+    // Defaults to MySQL's standard port for local dev, but Railway (and
+    // most managed MySQL hosts) assign a different port per database —
+    // without reading DB_PORT here, a production deploy would silently
+    // try to connect to the wrong port and fail.
+    port: process.env.DB_PORT || 3306,
+
     user: process.env.DB_USER,
 
     password: process.env.DB_PASSWORD,
