@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import Sidebar from "../components/layout/Sidebar";
+import api from "../services/api";
 import {
     FaEnvelope,
     FaPhone,
@@ -18,6 +20,20 @@ function Support() {
 
     const whatsapp2 =
         "https://wa.me/2348055684139?text=Hello%20SwiftTopUp%20Support,%20I%20need%20assistance.";
+
+    const [supportEmail, setSupportEmail] = useState("");
+
+    useEffect(() => {
+
+        api.get("/settings/public")
+            .then((response) => {
+                setSupportEmail(response.data.settings?.support_email || "");
+            })
+            .catch((error) => {
+                console.log("LOAD PUBLIC SETTINGS ERROR:", error);
+            });
+
+    }, []);
 
     return (
 
@@ -79,7 +95,7 @@ function Support() {
 
                                         <p className="text-gray-500">
 
-                                            support@swifttopup.com
+                                            {supportEmail || "Loading..."}
 
                                         </p>
 
@@ -89,7 +105,7 @@ function Support() {
 
                                 <a
 
-                                    href="mailto:support@swifttopup.com"
+                                    href={`mailto:${supportEmail}`}
 
                                     className="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl"
 

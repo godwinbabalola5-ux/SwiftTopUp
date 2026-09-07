@@ -120,7 +120,18 @@ function Sidebar() {
                     name: "Admin Settings",
                     icon: <FaCog />,
                     path: "/admin/settings"
-                }
+                },
+                {
+    name: "Business Wallet",
+    icon: <FaWallet />,
+    path: "/admin/business-wallet"
+},
+{
+    name: "Business Withdrawals",
+    icon: <FaMoneyCheckAlt />,
+    path: "/admin/business-withdrawals"
+},
+
 
             ]
             : [])

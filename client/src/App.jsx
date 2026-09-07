@@ -29,6 +29,8 @@ import FloatingSupport from "./components/FloatingSupport";
 import AdminWalletHistory from "./pages/AdminWalletHistory";
 import AdminRefunds from "./pages/AdminRefunds";
 import RefundRequest from "./pages/RefundRequest";
+import BusinessWallet from "./pages/BusinessWallet";
+import AdminBusinessWithdrawals from "./pages/AdminBusinessWithdrawals";
 function App() {
 
    return (
@@ -171,6 +173,14 @@ function App() {
                     </ProtectedRoute>
                 }
             />
+            <Route
+    path="/admin/business-wallet"
+    element={<BusinessWallet />}
+/>
+<Route
+    path="/admin/business-withdrawals"
+    element={<AdminBusinessWithdrawals />}
+/>
 
             <Route
                 path="/admin/transactions"

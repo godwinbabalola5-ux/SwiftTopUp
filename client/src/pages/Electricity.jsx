@@ -1,6 +1,8 @@
 import { useEffect, useState, useContext } from "react";
 import Sidebar from "../components/layout/Sidebar";
 import Button from "../components/ui/Button";
+import BeneficiaryPicker from "../components/BeneficiaryPicker";
+import PinPrompt from "../components/PinPrompt";
 import api from "../services/api";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
@@ -15,6 +17,17 @@ function Electricity() {
     const [meterType, setMeterType] = useState("prepaid");
     const [amount, setAmount] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPinPrompt, setShowPinPrompt] = useState(false);
+
+    const handleBeneficiarySelect = (beneficiary) => {
+
+        setMeterNumber(beneficiary.value);
+
+        if (beneficiary.network) {
+            setDisco(beneficiary.network);
+        }
+
+    };
 
     useEffect(() => {
 
@@ -47,15 +60,24 @@ function Electricity() {
 
     };
 
-    const buyElectricity = async (e) => {
+    const buyElectricity = (e) => {
 
         e.preventDefault();
+
+        if (!disco || !meterNumber || !amount) {
+            toast.error("Fill in all fields before continuing.");
+            return;
+        }
+
+        setShowPinPrompt(true);
+
+    };
+
+    const submitPurchase = async (pin) => {
 
         try {
 
             setLoading(true);
-
-            const token = localStorage.getItem("token");
 
             const response = await api.post(
 
@@ -65,13 +87,8 @@ function Electricity() {
                     disco,
                     meter_number: meterNumber,
                     meter_type: meterType,
-                    amount: Number(amount)
-                },
-
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                    amount: Number(amount),
+                    pin
                 }
 
             );
@@ -80,6 +97,7 @@ function Electricity() {
 
             await refreshUser();
 
+            setShowPinPrompt(false);
             setMeterNumber("");
             setAmount("");
 
@@ -195,6 +213,13 @@ function Electricity() {
 
                             </label>
 
+                            <BeneficiaryPicker
+                                type="electricity"
+                                value={meterNumber}
+                                network={disco}
+                                onSelect={handleBeneficiarySelect}
+                            />
+
                             <input
                                 type="text"
                                 placeholder="Enter meter number"
@@ -239,6 +264,14 @@ function Electricity() {
                 </div>
 
             </div>
+
+            {showPinPrompt && (
+                <PinPrompt
+                    onConfirm={submitPurchase}
+                    onCancel={() => setShowPinPrompt(false)}
+                    loading={loading}
+                />
+            )}
 
         </div>
 

@@ -8,6 +8,7 @@ import api from "../services/api";
 import ProfileImageUpload from "../components/profile/ProfileImageUpload";
 import EditProfileModal from "../components/profile/EditProfileModal";
 import ChangePasswordModal from "../components/profile/ChangePasswordModal";
+import SetTransactionPinModal from "../components/profile/SetTransactionPinModal";
 
 function Profile() {
 
@@ -16,10 +17,26 @@ function Profile() {
     const [profile, setProfile] = useState(null);
     const [showEdit, setShowEdit] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [showPin, setShowPin] = useState(false);
+    const [supportEmail, setSupportEmail] = useState("");
 
     useEffect(() => {
         loadProfile();
+        loadSupportEmail();
     }, []);
+
+    const loadSupportEmail = async () => {
+
+        try {
+
+            const response = await api.get("/settings/public");
+            setSupportEmail(response.data.settings?.support_email || "");
+
+        } catch (error) {
+            console.log("LOAD PUBLIC SETTINGS ERROR:", error);
+        }
+
+    };
 
     const loadProfile = async () => {
 
@@ -48,13 +65,6 @@ function Profile() {
         toast.success("Logged out successfully");
 
         navigate("/login");
-
-    };
-
-    const contactSupport = () => {
-
-        window.location.href =
-            "mailto:support@swifttopup.com?subject=SwiftTopUp Support";
 
     };
 
@@ -245,15 +255,45 @@ function Profile() {
 
                             <button
 
-                                onClick={contactSupport}
+                                onClick={() => setShowPin(true)}
 
-                                className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl"
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl"
 
                             >
 
-                                Contact Support
+                                Transaction PIN
 
                             </button>
+
+                            {supportEmail ? (
+
+                                <a
+
+                                    href={`mailto:${supportEmail}?subject=SwiftTopUp Support`}
+
+                                    className="w-full block text-center bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl"
+
+                                >
+
+                                    Contact Support
+
+                                </a>
+
+                            ) : (
+
+                                <button
+
+                                    disabled
+
+                                    className="w-full bg-gray-400 text-white py-3 rounded-xl cursor-not-allowed"
+
+                                >
+
+                                    Contact Support
+
+                                </button>
+
+                            )}
 
                             <button
 
@@ -294,6 +334,16 @@ function Profile() {
                 <ChangePasswordModal
 
                     onClose={() => setShowPassword(false)}
+
+                />
+
+            )}
+
+            {showPin && (
+
+                <SetTransactionPinModal
+
+                    onClose={() => setShowPin(false)}
 
                 />
 

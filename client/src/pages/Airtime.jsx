@@ -1,9 +1,12 @@
 import { useState, useContext } from "react";
 import Sidebar from "../components/layout/Sidebar";
+import BeneficiaryPicker from "../components/BeneficiaryPicker";
+import PinPrompt from "../components/PinPrompt";
 import api from "../services/api";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
 import { ThemeContext } from "../context/ThemeContext";
+import { detectNetworkFromPhone } from "../utils/detectNetwork";
 
 function Airtime() {
 
@@ -14,28 +17,73 @@ function Airtime() {
     const [phone, setPhone] = useState("");
     const [amount, setAmount] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPinPrompt, setShowPinPrompt] = useState(false);
 
-    const buyAirtime = async (e) => {
+    // Tracks whether the user has manually picked a network themselves —
+    // once they do, we stop overriding their choice as they keep typing
+    // the phone number (auto-detect is a convenience, not something that
+    // should fight the user for control of the dropdown).
+    const [networkManuallySet, setNetworkManuallySet] = useState(false);
+
+    const handlePhoneChange = (e) => {
+
+        const value = e.target.value;
+        setPhone(value);
+
+        if (networkManuallySet) return;
+
+        const detected = detectNetworkFromPhone(value);
+
+        if (detected) {
+            setNetwork(detected);
+        }
+
+    };
+
+    const handleNetworkChange = (e) => {
+        setNetwork(e.target.value);
+        setNetworkManuallySet(true);
+    };
+
+    const handleBeneficiarySelect = (beneficiary) => {
+
+        setPhone(beneficiary.value);
+
+        if (beneficiary.network) {
+            setNetwork(beneficiary.network);
+            setNetworkManuallySet(true);
+        }
+
+    };
+
+    const buyAirtime = (e) => {
 
         e.preventDefault();
+
+        if (!phone || !amount) {
+            toast.error("Enter a phone number and amount.");
+            return;
+        }
+
+        // Don't hit the API yet — confirm the PIN first. The actual
+        // purchase call happens in submitPurchase below, once we have it.
+        setShowPinPrompt(true);
+
+    };
+
+    const submitPurchase = async (pin) => {
 
         try {
 
             setLoading(true);
-
-            const token = localStorage.getItem("token");
 
             const response = await api.post(
                 "/airtime/buy",
                 {
                     network,
                     phone,
-                    amount: Number(amount)
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                    amount: Number(amount),
+                    pin
                 }
             );
 
@@ -43,9 +91,11 @@ function Airtime() {
 
             toast.success(response.data.message);
 
+            setShowPinPrompt(false);
             setPhone("");
             setAmount("");
             setNetwork("mtn");
+            setNetworkManuallySet(false);
 
         } catch (error) {
 
@@ -111,7 +161,7 @@ function Airtime() {
 
                             <select
                                 value={network}
-                                onChange={(e) => setNetwork(e.target.value)}
+                                onChange={handleNetworkChange}
                                 className={`w-full rounded-lg p-3 border ${
                                     darkMode
                                         ? "bg-gray-700 border-gray-600 text-white"
@@ -124,6 +174,18 @@ function Airtime() {
                                 <option value="9mobile">9mobile</option>
                             </select>
 
+                            {!networkManuallySet && phone.length >= 4 && (
+                                <p
+                                    className={`mt-1 text-xs ${
+                                        darkMode
+                                            ? "text-gray-400"
+                                            : "text-gray-500"
+                                    }`}
+                                >
+                                    Auto-detected from phone number — change it above if this isn't right.
+                                </p>
+                            )}
+
                         </div>
 
                         <div>
@@ -134,11 +196,18 @@ function Airtime() {
 
                             </label>
 
+                            <BeneficiaryPicker
+                                type="airtime"
+                                value={phone}
+                                network={network}
+                                onSelect={handleBeneficiarySelect}
+                            />
+
                             <input
                                 type="text"
                                 placeholder="08011111111"
                                 value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
+                                onChange={handlePhoneChange}
                                 className={`w-full rounded-lg p-3 border ${
                                     darkMode
                                         ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
@@ -191,6 +260,14 @@ function Airtime() {
                 </div>
 
             </div>
+
+            {showPinPrompt && (
+                <PinPrompt
+                    onConfirm={submitPurchase}
+                    onCancel={() => setShowPinPrompt(false)}
+                    loading={loading}
+                />
+            )}
 
         </div>
 

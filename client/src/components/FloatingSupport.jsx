@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FaWhatsapp,
   FaPhoneAlt,
@@ -6,9 +6,26 @@ import {
   FaComments,
   FaTimes,
 } from "react-icons/fa";
+import api from "../services/api";
 
 function FloatingSupport() {
   const [open, setOpen] = useState(false);
+  const [supportEmail, setSupportEmail] = useState("");
+
+  useEffect(() => {
+
+    // Public endpoint, no auth needed — pulls whatever email is set
+    // in Admin Settings instead of a hardcoded address, so changing
+    // it later is just an admin panel edit, not a code change.
+    api.get("/settings/public")
+      .then((response) => {
+        setSupportEmail(response.data.settings?.support_email || "");
+      })
+      .catch((error) => {
+        console.log("LOAD PUBLIC SETTINGS ERROR:", error);
+      });
+
+  }, []);
 
   return (
     <div className="fixed bottom-6 right-6 z-[9999]">
@@ -79,20 +96,22 @@ function FloatingSupport() {
               </div>
             </a>
 
-            <a
-              href="mailto:support@swifttopup.com"
-              className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50"
-            >
-              <FaEnvelope className="text-blue-600 text-xl" />
-              <div>
-                <h3 className="font-semibold">
-                  Email Support
-                </h3>
-                <p className="text-sm text-gray-500">
-                  support@swifttopup.com
-                </p>
-              </div>
-            </a>
+            {supportEmail && (
+              <a
+                href={`mailto:${supportEmail}`}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50"
+              >
+                <FaEnvelope className="text-blue-600 text-xl" />
+                <div>
+                  <h3 className="font-semibold">
+                    Email Support
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {supportEmail}
+                  </p>
+                </div>
+              </a>
+            )}
 
           </div>
 

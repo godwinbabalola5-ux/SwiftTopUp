@@ -5,10 +5,12 @@ import {
     FaChartLine,
     FaCalendarAlt
 } from "react-icons/fa";
+import { useForexRates } from "../../hooks/useForexRates";
 
 function WelcomeHero({ user }) {
 
     const [time, setTime] = useState(new Date());
+    const { rates, error } = useForexRates();
 
     useEffect(() => {
 
@@ -28,6 +30,12 @@ function WelcomeHero({ user }) {
 
     if (hour < 12) greeting = "Good Morning";
     else if (hour < 18) greeting = "Good Afternoon";
+
+    const dollarRateDisplay = error
+        ? "Unavailable"
+        : rates.USD
+        ? `₦${Number(rates.USD).toLocaleString()}`
+        : "Loading...";
 
     return (
 
@@ -123,7 +131,7 @@ function WelcomeHero({ user }) {
 
                         <h3 className="font-bold">
 
-                            ₦1,540
+                            {dollarRateDisplay}
 
                         </h3>
 

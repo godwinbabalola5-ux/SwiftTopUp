@@ -3,14 +3,15 @@ import Sidebar from "../components/layout/Sidebar";
 import api from "../services/api";
 import AdminCharts from "../components/admin/AdminCharts";
 import socket from "../services/socket";
-
+import AdminRevenue from "../components/admin/AdminRevenue";
 import {
     FaUsers,
     FaWallet,
     FaMoneyBillWave,
     FaExchangeAlt,
     FaCalendarDay,
-    FaCalendarAlt
+    FaCalendarAlt,
+    FaChartLine
 } from "react-icons/fa";
 
 function AdminDashboard() {
@@ -19,6 +20,14 @@ function AdminDashboard() {
     const [analytics, setAnalytics] = useState([]);
     const [topServices, setTopServices] = useState([]);
     const [activityLogs, setActivityLogs] = useState([]);
+    const [recentRevenue, setRecentRevenue] = useState([]);
+
+
+    const [revenue, setRevenue] = useState({
+        totalProviderCost: 0,
+        totalCustomerAmount: 0,
+        totalProfit: 0
+    });
 
     useEffect(() => {
 
@@ -26,6 +35,8 @@ function AdminDashboard() {
         loadAnalytics();
         loadTopServices();
         loadActivityLogs();
+        loadRevenue();
+        loadRecentRevenue();
 
         socket.on("newTransaction", () => {
 
@@ -33,6 +44,8 @@ function AdminDashboard() {
             loadAnalytics();
             loadTopServices();
             loadActivityLogs();
+            loadRevenue();
+            loadRecentRevenue();
 
         });
 
@@ -44,17 +57,24 @@ function AdminDashboard() {
 
     }, []);
 
+    const getToken = () => {
+
+        return localStorage.getItem("token");
+
+    };
+
     const loadDashboard = async () => {
 
         try {
 
-            const token = localStorage.getItem("token");
-
-            const response = await api.get("/admin/dashboard", {
-                headers: {
-                    Authorization: `Bearer ${token}`
+            const response = await api.get(
+                "/admin/dashboard",
+                {
+                    headers: {
+                        Authorization: `Bearer ${getToken()}`
+                    }
                 }
-            });
+            );
 
             setDashboard(response.data.dashboard);
 
@@ -70,13 +90,14 @@ function AdminDashboard() {
 
         try {
 
-            const token = localStorage.getItem("token");
-
-            const response = await api.get("/admin/analytics", {
-                headers: {
-                    Authorization: `Bearer ${token}`
+            const response = await api.get(
+                "/admin/analytics",
+                {
+                    headers: {
+                        Authorization: `Bearer ${getToken()}`
+                    }
                 }
-            });
+            );
 
             setAnalytics(response.data.analytics);
 
@@ -92,13 +113,14 @@ function AdminDashboard() {
 
         try {
 
-            const token = localStorage.getItem("token");
-
-            const response = await api.get("/admin/top-services", {
-                headers: {
-                    Authorization: `Bearer ${token}`
+            const response = await api.get(
+                "/admin/top-services",
+                {
+                    headers: {
+                        Authorization: `Bearer ${getToken()}`
+                    }
                 }
-            });
+            );
 
             setTopServices(response.data.services);
 
@@ -114,13 +136,14 @@ function AdminDashboard() {
 
         try {
 
-            const token = localStorage.getItem("token");
-
-            const response = await api.get("/admin/activity-logs", {
-                headers: {
-                    Authorization: `Bearer ${token}`
+            const response = await api.get(
+                "/admin/activity-logs",
+                {
+                    headers: {
+                        Authorization: `Bearer ${getToken()}`
+                    }
                 }
-            });
+            );
 
             setActivityLogs(response.data.logs);
 
@@ -131,6 +154,51 @@ function AdminDashboard() {
         }
 
     };
+
+    const loadRevenue = async () => {
+
+        try {
+
+            const response = await api.get(
+                "/revenue/summary",
+                {
+                    headers: {
+                        Authorization: `Bearer ${getToken()}`
+                    }
+                }
+            );
+
+            setRevenue(response.data.revenue);
+
+        } catch (err) {
+
+            console.log("Revenue loading error:", err);
+
+        }
+
+    };
+    const loadRecentRevenue = async () => {
+
+    try {
+
+        const response = await api.get(
+            "/revenue/recent",
+            {
+                headers: {
+                    Authorization: `Bearer ${getToken()}`
+                }
+            }
+        );
+
+        setRecentRevenue(response.data.revenue);
+
+    } catch (err) {
+
+        console.log(err);
+
+    }
+
+};
 
     const cards = [
 
@@ -150,7 +218,9 @@ function AdminDashboard() {
 
         {
             title: "Wallet Balance",
-            value: `₦${Number(dashboard.totalWallet || 0).toLocaleString()}`,
+            value: `₦${Number(
+                dashboard.totalWallet || 0
+            ).toLocaleString()}`,
             color: "bg-green-600",
             icon: <FaWallet size={35} />
         },
@@ -164,21 +234,27 @@ function AdminDashboard() {
 
         {
             title: "Funding",
-            value: `₦${Number(dashboard.totalFunding || 0).toLocaleString()}`,
+            value: `₦${Number(
+                dashboard.totalFunding || 0
+            ).toLocaleString()}`,
             color: "bg-pink-600",
             icon: <FaMoneyBillWave size={35} />
         },
 
         {
             title: "Today's Revenue",
-            value: `₦${Number(dashboard.todayRevenue || 0).toLocaleString()}`,
+            value: `₦${Number(
+                dashboard.todayRevenue || 0
+            ).toLocaleString()}`,
             color: "bg-red-600",
             icon: <FaCalendarDay size={35} />
         },
 
         {
             title: "Monthly Revenue",
-            value: `₦${Number(dashboard.monthlyRevenue || 0).toLocaleString()}`,
+            value: `₦${Number(
+                dashboard.monthlyRevenue || 0
+            ).toLocaleString()}`,
             color: "bg-indigo-600",
             icon: <FaCalendarAlt size={35} />
         }
@@ -191,13 +267,18 @@ function AdminDashboard() {
 
             <Sidebar />
 
-            <div className="flex-1 p-8 text-gray-900 dark:text-white transition-colors duration-300">
+            <div className="flex-1 p-8 text-gray-900 dark:text-white">
 
-                <h1 className="text-4xl font-bold mb-10 text-gray-900 dark:text-white">
+                <h1 className="text-4xl font-bold mb-10">
 
                     Admin Dashboard
 
                 </h1>
+
+
+                {/* =========================
+                    DASHBOARD CARDS
+                ========================= */}
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
 
@@ -205,7 +286,7 @@ function AdminDashboard() {
 
                         <div
                             key={index}
-                            className={`${card.color} text-white rounded-2xl p-7 shadow-lg transition-all duration-300`}
+                            className={`${card.color} text-white rounded-2xl p-7 shadow-lg`}
                         >
 
                             <div className="flex justify-between items-center">
@@ -236,15 +317,243 @@ function AdminDashboard() {
 
                 </div>
 
+
+                {/* =========================
+                    BUSINESS REVENUE
+                ========================= */}
+
                 <div className="mt-10">
 
-                    <AdminCharts analytics={analytics} />
+                    <h2 className="text-2xl font-bold mb-6">
+
+                        💰 Business Revenue
+
+                    </h2>
+
+                    <div className="grid md:grid-cols-3 gap-6">
+
+
+                        {/* Provider Cost */}
+
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
+
+                            <div className="flex justify-between items-center">
+
+                                <div>
+
+                                    <p className="text-gray-500 dark:text-gray-400">
+
+                                        Provider Cost
+
+                                    </p>
+
+                                    <h3 className="text-3xl font-bold mt-2">
+
+                                        ₦{Number(
+                                            revenue.totalProviderCost || 0
+                                        ).toLocaleString()}
+
+                                    </h3>
+
+                                </div>
+
+                                <FaMoneyBillWave
+                                    size={30}
+                                    className="text-orange-500"
+                                />
+
+                            </div>
+
+                        </div>
+
+
+                        {/* Customer Amount */}
+
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
+
+                            <div className="flex justify-between items-center">
+
+                                <div>
+
+                                    <p className="text-gray-500 dark:text-gray-400">
+
+                                        Customer Paid
+
+                                    </p>
+
+                                    <h3 className="text-3xl font-bold mt-2">
+
+                                        ₦{Number(
+                                            revenue.totalCustomerAmount || 0
+                                        ).toLocaleString()}
+
+                                    </h3>
+
+                                </div>
+
+                                <FaWallet
+                                    size={30}
+                                    className="text-blue-500"
+                                />
+
+                            </div>
+
+                        </div>
+
+
+                        {/* Profit */}
+
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
+
+                            <div className="flex justify-between items-center">
+
+                                <div>
+
+                                    <p className="text-gray-500 dark:text-gray-400">
+
+                                        Total Profit
+
+                                    </p>
+
+                                    <h3 className="text-3xl font-bold mt-2 text-green-500">
+
+                                        ₦{Number(
+                                            revenue.totalProfit || 0
+                                        ).toLocaleString()}
+
+                                    </h3>
+
+                                </div>
+
+                                <FaChartLine
+                                    size={30}
+                                    className="text-green-500"
+                                />
+
+                            </div>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
-                <div className="mt-10 bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 transition-colors duration-300">
+                <div className="mt-10 bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
 
-                    <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+    <h2 className="text-2xl font-bold mb-6">
+
+        💰 Recent Profit Transactions
+
+    </h2>
+
+    <div className="overflow-x-auto">
+
+        <table className="w-full">
+
+            <thead className="border-b">
+
+                <tr>
+
+                    <th className="text-left py-3">Customer</th>
+                    <th className="text-left py-3">Service</th>
+                    <th className="text-left py-3">Provider Cost</th>
+                    <th className="text-left py-3">Customer Paid</th>
+                    <th className="text-left py-3">Profit</th>
+                    <th className="text-left py-3">Reference</th>
+                    <th className="text-left py-3">Status</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {recentRevenue.map((item) => (
+
+                    <tr
+                        key={item.id}
+                        className="border-b hover:bg-gray-100 dark:hover:bg-slate-700"
+                    >
+
+                        <td className="py-3">
+
+                            {item.fullname}
+
+                        </td>
+
+                        <td className="py-3 capitalize">
+
+                            {item.service_type}
+
+                        </td>
+
+                        <td className="py-3 text-orange-600 font-semibold">
+
+                            ₦{Number(item.provider_cost).toLocaleString()}
+
+                        </td>
+
+                        <td className="py-3 text-blue-600 font-semibold">
+
+                            ₦{Number(item.customer_amount).toLocaleString()}
+
+                        </td>
+
+                        <td className="py-3 text-green-600 font-bold">
+
+                            ₦{Number(item.profit).toLocaleString()}
+
+                        </td>
+
+                        <td className="py-3">
+
+                            {item.reference}
+
+                        </td>
+
+                        <td className="py-3">
+
+                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full">
+
+                                {item.status}
+
+                            </span>
+
+                        </td>
+
+                    </tr>
+
+                ))}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+                {/* =========================
+                    ANALYTICS
+                ========================= */}
+
+                <div className="mt-10">
+
+                    <AdminCharts
+                        analytics={analytics}
+                    />
+
+                </div>
+
+
+                {/* =========================
+                    TOP SERVICES
+                ========================= */}
+
+                <div className="mt-10 bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
+
+                    <h2 className="text-2xl font-bold mb-6">
 
                         🏆 Top Services
 
@@ -261,7 +570,7 @@ function AdminDashboard() {
 
                                 <div>
 
-                                    <h3 className="font-semibold text-gray-900 dark:text-white capitalize">
+                                    <h3 className="font-semibold capitalize">
 
                                         {service.type}
 
@@ -277,7 +586,9 @@ function AdminDashboard() {
 
                                 <div className="text-green-600 font-bold text-lg">
 
-                                    ₦{Number(service.totalRevenue).toLocaleString()}
+                                    ₦{Number(
+                                        service.totalRevenue
+                                    ).toLocaleString()}
 
                                 </div>
 
@@ -289,9 +600,14 @@ function AdminDashboard() {
 
                 </div>
 
-                <div className="mt-10 bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 transition-colors duration-300">
 
-                    <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+                {/* =========================
+                    RECENT ACTIVITY
+                ========================= */}
+
+                <div className="mt-10 bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
+
+                    <h2 className="text-2xl font-bold mb-6">
 
                         🕒 Recent Activity
 
@@ -310,7 +626,7 @@ function AdminDashboard() {
 
                                     <div>
 
-                                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                                        <h3 className="font-semibold">
 
                                             {log.action}
 
@@ -322,7 +638,7 @@ function AdminDashboard() {
 
                                         </p>
 
-                                        <p className="text-sm text-gray-400 dark:text-gray-500">
+                                        <p className="text-sm text-gray-400">
 
                                             {log.target}
 
@@ -330,9 +646,11 @@ function AdminDashboard() {
 
                                     </div>
 
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                                    <span className="text-sm text-gray-500">
 
-                                        {new Date(log.created_at).toLocaleString()}
+                                        {new Date(
+                                            log.created_at
+                                        ).toLocaleString()}
 
                                     </span>
 

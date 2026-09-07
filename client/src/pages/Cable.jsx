@@ -1,6 +1,8 @@
 import { useEffect, useState, useContext } from "react";
 import Sidebar from "../components/layout/Sidebar";
 import Button from "../components/ui/Button";
+import BeneficiaryPicker from "../components/BeneficiaryPicker";
+import PinPrompt from "../components/PinPrompt";
 import api from "../services/api";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
@@ -16,6 +18,17 @@ function Cable() {
     const [amount, setAmount] = useState("");
     const [smartcard, setSmartcard] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPinPrompt, setShowPinPrompt] = useState(false);
+
+    const handleBeneficiarySelect = (beneficiary) => {
+
+        setSmartcard(beneficiary.value);
+
+        if (beneficiary.network) {
+            setProvider(beneficiary.network);
+        }
+
+    };
 
     useEffect(() => {
 
@@ -101,15 +114,24 @@ function Cable() {
 
     };
 
-    const buyCable = async (e) => {
+    const buyCable = (e) => {
 
         e.preventDefault();
+
+        if (!smartcard || !variationCode) {
+            toast.error("Select a plan and enter your smartcard number.");
+            return;
+        }
+
+        setShowPinPrompt(true);
+
+    };
+
+    const submitPurchase = async (pin) => {
 
         try {
 
             setLoading(true);
-
-            const token = localStorage.getItem("token");
 
             const response = await api.post(
                 "/cable/buy",
@@ -117,12 +139,8 @@ function Cable() {
                     provider,
                     smartcard,
                     variation_code: variationCode,
-                    amount: Number(amount)
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                    amount: Number(amount),
+                    pin
                 }
             );
 
@@ -130,6 +148,7 @@ function Cable() {
 
             await refreshUser();
 
+            setShowPinPrompt(false);
             setSmartcard("");
             setVariationCode("");
             setAmount("");
@@ -263,6 +282,13 @@ function Cable() {
 
                             </label>
 
+                            <BeneficiaryPicker
+                                type="cable"
+                                value={smartcard}
+                                network={provider}
+                                onSelect={handleBeneficiarySelect}
+                            />
+
                             <input
                                 type="text"
                                 value={smartcard}
@@ -288,6 +314,14 @@ function Cable() {
                 </div>
 
             </div>
+
+            {showPinPrompt && (
+                <PinPrompt
+                    onConfirm={submitPurchase}
+                    onCancel={() => setShowPinPrompt(false)}
+                    loading={loading}
+                />
+            )}
 
         </div>
 
