@@ -25,7 +25,7 @@ function Dashboard() {
 
     return (
 
-        <div className={`flex min-h-screen ${
+        <div className={`flex min-h-screen overflow-x-hidden ${
             darkMode
                 ? "bg-gray-900"
                 : "bg-gray-100"
@@ -33,7 +33,12 @@ function Dashboard() {
 
             <Sidebar />
 
-            <div className="flex-1 p-8">
+            {/* min-w-0 is the key fix here: without it, a flex child (this
+                div) refuses to shrink below the width of its widest
+                un-wrappable content — in this case, LiveTicker's scrolling
+                marquee text (white-space: nowrap) — which was silently
+                stretching the whole page wider than the phone screen. */}
+            <div className="flex-1 min-w-0 p-8">
 
                 <DashboardHeader user={user} />
                 <LiveTicker />
