@@ -113,9 +113,15 @@ const initializePayment = async (req, res) => {
                 email: user.email,
                 amount: Math.round(numericAmount * 100),
 
-                // IMPORTANT:
-                // Change this URL when the frontend is deployed.
-                callback_url: "http://localhost:5173/payment/success"
+                // Was hardcoded to "http://localhost:5173/payment/success"
+                // — that's why the redirect after payment was sending
+                // people to localhost even on the live deployed site.
+                // Now it uses CLIENT_URL (set in Railway's environment
+                // variables), so it automatically points wherever the
+                // frontend actually is — locally or in production —
+                // without needing another code change if the domain
+                // ever changes.
+                callback_url: `${process.env.CLIENT_URL}/payment/success`
             },
             {
                 headers: {
