@@ -94,7 +94,20 @@ app.use(cors({
     credentials: true
 }));
 
-app.use(express.json());
+// The `verify` option here stashes the exact raw bytes of every
+// incoming request body onto req.rawBody BEFORE Express parses it
+// into a JS object. Paystack's webhook signature is computed over
+// those original bytes — using JSON.stringify(req.body) later would
+// re-serialize the ALREADY-parsed object, which can differ from what
+// Paystack actually sent (key order, spacing), breaking the signature
+// check even for genuine webhooks. This applies globally but is
+// essentially free — it only matters to routes that actually read
+// req.rawBody, which right now is just the Paystack webhook.
+app.use(express.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 
 app.use(
     "/uploads",
@@ -146,6 +159,7 @@ const cableRoutes = require("./routes/cableRoutes");
 const transactionRoutes = require("./routes/transactionRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const paystackWebhookRoutes = require("./routes/paystackWebhookRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const dashboardAnalyticsRoutes = require("./routes/dashboardAnalyticsRoutes");
 const recentTransactionRoutes = require("./routes/recentTransactionRoutes");
@@ -200,6 +214,13 @@ app.use("/api/transactions", transactionRoutes);
 app.use("/api/beneficiaries", beneficiaryRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/payment", paymentRoutes);
+
+// This is the actual endpoint that was missing entirely — the
+// controller and route file already existed, but nothing in app.js
+// ever wired them up, so Paystack had nowhere to actually send
+// webhook events even if the dashboard were configured to try.
+app.use("/api/payment/webhook", paystackWebhookRoutes);
+
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/recent-transactions", recentTransactionRoutes);
 app.use("/api/notifications", notificationRoutes);

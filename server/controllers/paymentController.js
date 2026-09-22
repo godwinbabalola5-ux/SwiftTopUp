@@ -118,10 +118,18 @@ const initializePayment = async (req, res) => {
                 // people to localhost even on the live deployed site.
                 // Now it uses CLIENT_URL (set in Railway's environment
                 // variables), so it automatically points wherever the
-                // frontend actually is — locally or in production —
-                // without needing another code change if the domain
-                // ever changes.
-                callback_url: `${process.env.CLIENT_URL}/payment/success`
+                // frontend actually is.
+                callback_url: `${process.env.CLIENT_URL}/payment/success`,
+
+                // This was missing entirely before. The webhook
+                // (paystackWebhookController.js) reads
+                // payment.metadata.userId to know whose wallet to
+                // credit — without sending it here, that lookup would
+                // always come back empty/undefined once the webhook
+                // is wired up.
+                metadata: {
+                    userId: user.id
+                }
             },
             {
                 headers: {
