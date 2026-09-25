@@ -72,7 +72,7 @@ function Wallet() {
     return (
 
         <div
-            className={`flex min-h-screen ${
+            className={`flex min-h-screen overflow-x-hidden ${
                 darkMode
                     ? "bg-gray-900"
                     : "bg-gray-100"
@@ -81,7 +81,7 @@ function Wallet() {
 
             <Sidebar />
 
-            <div className="flex-1 p-8">
+            <div className="flex-1 min-w-0 p-8">
 
                 <h1
                     className={`text-4xl font-bold mb-8 ${
